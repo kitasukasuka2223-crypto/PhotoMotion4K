@@ -1,0 +1,53 @@
+
+name: Build PhotoMotion4K APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract PhotoMotion project
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -name 'PhotoMotion4K-POCO-F6-CloudBuild*.zip' -print -quit)
+          test -n "$ZIP_FILE"
+          mkdir source
+          unzip -q "$ZIP_FILE" -d source
+
+      - name: Build Android APK
+        run: |
+          gradle --no-daemon -p source/PhotoMotion4K-v0.3.1 assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoMotion4K-APK
+          path: source/PhotoMotion4K-v0.3.1/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
